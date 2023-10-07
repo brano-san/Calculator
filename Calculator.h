@@ -15,7 +15,7 @@ namespace calculator
 		constexpr static double e  = 2.718281828459045;
 		constexpr static double pi = 3.141592653589793;
 
-		template<typename T>
+		template<class T>
 		static T factorial(T const& n)
 		{
 			int res = 1;
@@ -24,20 +24,46 @@ namespace calculator
 			return res;
 		}
 
-		template<typename T>
+		template<class T>
 		static T log(T const& expression, double const& base)
 		{
-			return std::log(expression) / std::log(base);
+			return std::log10(expression) / std::log10(base);
 		}
 
-		template<typename T>
+		template<class T>
 		static T root(T const& expression, double const& power)
 		{
 			return std::pow(expression, static_cast<T>(1) / power);
 		}
+
+		template<class T>
+		static T sin(T const& expression)
+		{
+			T a = std::sin(expression);
+			if (std::abs(a) < (1e-15))
+				return 0;
+			return a;
+		}
+
+		template<class T>
+		static T cos(T const& expression)
+		{
+			T a = std::cos(expression);
+			if (std::abs(a) < (1e-15))
+				return 0;
+			return a;
+		}
+
+		template<class T>
+		static T divide(T const& a, T const& b)
+		{
+			if (std::abs(b) < (1e-15))
+				throw std::range_error("Division by zero exception");
+			return a / b;
+		}
 	};
 
-	template<typename T = double>
+	template<class T = double>
 	class Calculator
 	{
 	public:
@@ -48,6 +74,7 @@ namespace calculator
 
 			_index = 0;
 			_expr = expression;
+
 			_expr.erase(std::remove_if(_expr.begin(), _expr.end(), isspace), _expr.end());
 
 			std::transform(_expr.begin(), _expr.end(), _expr.begin(),
@@ -65,7 +92,8 @@ namespace calculator
 			MULTIPLICATION, // *
 			DIVISION,		// /
 			EXTENT,			// ^
-			FACTORIAL		// !
+			FACTORIAL,		// !
+			PERCENT,		// %
 		};
 
 		class Operation
@@ -115,31 +143,33 @@ namespace calculator
 			case OperationType::MULTIPLICATION:
 				return (a * b);
 			case OperationType::DIVISION:
-				return (a / b);
+				return Math::divide(a, b);
 			case OperationType::EXTENT:
 				return std::pow(a, b);
 			case OperationType::FACTORIAL:
 				return Math::factorial(a);
+			case OperationType::PERCENT:
+				return (a / static_cast<T>(100));
 			case OperationType::NULL_OP:
 				return b;
 			}
-			throw std::runtime_error("Bad Operation (compute function)");
+			throw std::runtime_error("Bad Operation");
 		}
 
 		T compute(T const& expression, std::string const& operation, double const& base = 0) const
 		{
 			if (operation == "sin")
-				return std::sin(expression);
+				return Math::sin(expression);
 			if (operation == "cos")
-				return std::cos(expression);
+				return Math::cos(expression);
 			if (operation == "tg")
-				return (std::sin(expression) / std::cos(expression));
+				return Math::divide(Math::sin(expression), Math::cos(expression));
 			if (operation == "ctg")
-				return (std::cos(expression) / std::sin(expression));
+				return Math::divide(Math::cos(expression), Math::sin(expression));
 			if (operation == "sec")
-				return (1. / std::cos(expression));
+				return Math::divide(static_cast<T>(1), Math::cos(expression));
 			if (operation == "csc")
-				return (1. / std::sin(expression));
+				return Math::divide(static_cast<T>(1), Math::sin(expression));
 			if (operation == "ln")
 				return std::log(expression);
 			if (operation == "sqrt")
@@ -150,7 +180,7 @@ namespace calculator
 				return Math::root(expression, base);
 			if (operation == "exp")
 				return std::exp(expression);
-			throw std::runtime_error("Bad Operation (trigonometric compute function)");
+			throw std::runtime_error("Bad Operation");
 		}
 
 		T parseExpression()
@@ -161,10 +191,10 @@ namespace calculator
 
 			while (!_operations.empty())
 			{
-				auto oper = parseOperator();
+				auto operation = parseOperator();
 
-				while (oper.priority <= _operations.top().operation.priority &&
-					oper.isRightside == false)
+				while (operation.priority <= _operations.top().operation.priority &&
+					operation.isRightside == false)
 				{
 					if(_operations.top().isNullOperation())
 					{
@@ -175,8 +205,15 @@ namespace calculator
 					value = compute(_operations.top().value, value, _operations.top().operation);
 					_operations.pop();
 				}
+				
+				if (operation.type == OperationType::PERCENT &&
+					(_operations.top().operation.type == OperationType::ADDITION ||
+					_operations.top().operation.type == OperationType::SUBTRACTION))
+				{
+					value *= _operations.top().value;
+				}
 
-				_operations.push(OperationValue(oper, value));
+				_operations.push(OperationValue(operation, value));
 				if (!_operations.top().operation.isRightside)
 					value = parseToken();
 			}
@@ -203,6 +240,8 @@ namespace calculator
 				return Operation{ OperationType::EXTENT, 3 };
 			case '!':
 				return Operation{ OperationType::FACTORIAL, 4, true };
+			case '%':
+				return Operation{ OperationType::PERCENT, 5, true };
 			default:
 				return Operation{ OperationType::NULL_OP, 0 };
 			}
@@ -243,33 +282,23 @@ namespace calculator
 				return parseToken();
 			}
 
-			const std::map<std::string, double> constants {
-				{ "e",  Math::e  },
-				{ "pi", Math::pi } };
-			for (auto const& constant : constants)
-			{
-				if (std::strncmp(&_expr[_index], constant.first.c_str(), constant.first.length()) == 0)
-				{
-					_index += constant.first.length();
-					return constant.second;
-				}
-			}
-
-			const std::string funcWithBase[]{ "log", "root" };
+			const std::map<std::string, std::string> funcWithBase {
+				{ "log",  "10" },
+				{ "root", "2"  } };
 			for (auto const& func : funcWithBase)
 			{
-				if (std::strncmp(&_expr[_index], func.c_str(), func.length()) == 0)
+				if (std::strncmp(&_expr[_index], func.first.c_str(), func.first.length()) == 0)
 				{
-					_index += func.length();
+					_index += func.first.length();
 					std::string base;
 					while (isdigit(_expr[_index]))
 					{
 						base += _expr[_index++];
 					}
 					if (base.empty())
-						base = (func == "log") ? "10" : "2";
+						base = func.second;
 					++_index;
-					return compute(parseExpression(), func, std::stod(base));
+					return compute(parseExpression(), func.first, std::stod(base));
 				}
 			}
 
@@ -283,11 +312,23 @@ namespace calculator
 				}
 			}
 
-			throw std::runtime_error("Invalid token (parseToken function)");
+			const std::map<std::string, double> constants {
+				{ "e",  Math::e  },
+				{ "pi", Math::pi } };
+			for (auto const& constant : constants)
+			{
+				if (std::strncmp(&_expr[_index], constant.first.c_str(), constant.first.length()) == 0)
+				{
+					_index += constant.first.length();
+					return constant.second;
+				}
+			}
+
+			throw std::runtime_error("Invalid token");
 		}
 	};
 
-	template<typename T = double>
+	template<class T = double>
 	T eval(std::string const& expression)
 	{
 		Calculator<T> calc;
