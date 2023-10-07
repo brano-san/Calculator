@@ -1,4 +1,6 @@
-﻿#include <algorithm>
+﻿#pragma once
+
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <stack>
@@ -31,7 +33,7 @@ namespace calculator
 		template<typename T>
 		static T root(T const& expression, double const& power)
 		{
-			return std::pow(expression, static_cast<T>(-1) / power);
+			return std::pow(expression, static_cast<T>(1) / power);
 		}
 	};
 
@@ -290,19 +292,5 @@ namespace calculator
 	{
 		Calculator<T> calc;
 		return calc.eval(expression);
-	}
-}
-
-int main()
-{
-	const std::string expression { "|e^pi| - (-1)" };
-
-	try
-	{
-		std::cout << std::fixed << calculator::eval<double>(expression) << std::endl;
-	}
-	catch (std::exception& e)
-	{
-		std::cout << e.what() << std::endl;
 	}
 }
