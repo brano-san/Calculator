@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include <vector>
+#include <memory>
 #include <stack>
 #include <cmath>
 #include <map>
@@ -130,6 +132,17 @@ namespace calculator
 		std::string _expr;
 		std::size_t _index{};
 		std::stack<OperationValue> _operations;
+
+		const std::map<std::string, std::string> _funcWithBase{
+		{ "log",  "10" },
+		{ "root", "2"  } };
+
+		const std::vector<std::string> _functions{
+		"sin", "cos", "tg", "ctg", "sec", "csc", "ln", "sqrt", "exp" };
+		
+		const std::map<std::string, double> _constants{
+		{ "e",  Math::e  },
+		{ "pi", Math::pi } };
 
 	private:
 		T compute(T const& a, T const& b, Operation const& op) const
@@ -282,10 +295,7 @@ namespace calculator
 				return parseToken();
 			}
 
-			const std::map<std::string, std::string> funcWithBase {
-				{ "log",  "10" },
-				{ "root", "2"  } };
-			for (auto const& func : funcWithBase)
+			for (auto const& func : _funcWithBase)
 			{
 				if (std::strncmp(&_expr[_index], func.first.c_str(), func.first.length()) == 0)
 				{
@@ -302,8 +312,7 @@ namespace calculator
 				}
 			}
 
-			const std::string functions[]{ "sin", "cos", "tg", "ctg", "sec", "csc", "ln", "sqrt", "exp" };
-			for (auto const& func : functions)
+			for (auto const& func : _functions)
 			{
 				if (std::strncmp(&_expr[_index], func.c_str(), func.length()) == 0)
 				{
@@ -312,10 +321,7 @@ namespace calculator
 				}
 			}
 
-			const std::map<std::string, double> constants {
-				{ "e",  Math::e  },
-				{ "pi", Math::pi } };
-			for (auto const& constant : constants)
+			for (auto const& constant : _constants)
 			{
 				if (std::strncmp(&_expr[_index], constant.first.c_str(), constant.first.length()) == 0)
 				{
@@ -331,7 +337,7 @@ namespace calculator
 	template<class T = double>
 	T eval(std::string const& expression)
 	{
-		Calculator<T> calc;
-		return calc.eval(expression);
+		auto calc = std::make_unique<Calculator<T>>();
+		return calc->eval(expression);
 	}
 }
