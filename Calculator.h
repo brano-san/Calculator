@@ -11,64 +11,133 @@
 
 namespace calculator
 {
+	/** \class Math
+	 * \brief Provides math functions and math constants \n
+	 * Class is used to protect from divide by zero, small numbers and provides helpful functions
+	 */
 	class Math
 	{
 	public:
 		constexpr static double e  = 2.718281828459045;
 		constexpr static double pi = 3.141592653589793;
 
+		/**
+		 * \brief Calculates the factorial
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::factorial<std::int64_t>(5); // = 120 \endcode
+		 * \tparam T the type of evaluated variable 
+		 * \param number the number for which the factorial will be found
+		 * \return Factorial of a 'number'
+		 */
 		template<class T>
-		static T factorial(T const& n)
+		static constexpr T factorial(T const& number)
 		{
-			int res = 1;
-			for (int i = 2; i <= n; ++i)
-				res *= i;
-			return res;
+			int result = 1;
+			for (int i = 2; i <= number; ++i)
+				result *= i;
+			return result;
 		}
 
+		/**
+		 * \brief Calculates the logarithm of any base
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::log<std::int64_t>(100, 10); // = 2 \endcode
+		 * \tparam T the type of evaluated variable
+		 * \param expression the number for which the logarithm will be found
+		 * \param base the base of the logarithm
+		 * \return Logarithm by 'base' of the 'expression'
+		 */
 		template<class T>
 		static T log(T const& expression, double const& base)
 		{
 			return std::log10(expression) / std::log10(base);
 		}
 
+		/**
+		 * \brief Calculates the root of any power
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::root<std::int64_t>(100, 10); // = 2 \endcode
+		 * \tparam T the type of evaluated variable
+		 * \param expression the number for which the root will be found
+		 * \param power the power of the root
+		 * \return Root by 'power' of the 'expression'
+		 */
 		template<class T>
 		static T root(T const& expression, double const& power)
 		{
 			return std::pow(expression, static_cast<T>(1) / power);
 		}
 
+		/**
+		 * \brief Calculates the sine of expression
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::sin<std::int64_t>(90); // = 0 \endcode
+		 * \tparam T the type of evaluated variable
+		 * \param expression the number for which the sine will be found
+		 * \return Sine of the 'expression' or zero if answer is especially small number
+		 */
 		template<class T>
 		static T sin(T const& expression)
 		{
-			T a = std::sin(expression);
+			T a = static_cast<T>(std::sin(expression));
 			if (std::abs(a) < (1e-15))
 				return 0;
 			return a;
 		}
 
+		/**
+		 * \brief Calculates the cosine of expression
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::cos<std::int64_t>(0); // = 1 \endcode
+		 * \tparam T the type of evaluated variable
+		 * \param expression the number for which the cosine will be found
+		 * \return Cosine of the 'expression' or zero if answer is especially small number
+		 */
 		template<class T>
 		static T cos(T const& expression)
 		{
-			T a = std::cos(expression);
+			T a = static_cast<T>(std::cos(expression));
 			if (std::abs(a) < (1e-15))
 				return 0;
 			return a;
 		}
 
+		/**
+		 * \brief Divide two number
+		 * \details For example: \n
+		 * \code auto answer = calculator::Math::divide<std::int64_t>(10, 2); // = 5 \endcode
+		 * \tparam T the type of evaluated variable
+		 * \param divisible the number which will be divided
+		 * \param divider the number which will divide
+		 * \throw std::range_error if divider is especially small number 
+		 * \return Division result of the two numbers
+		 */
 		template<class T>
-		static T divide(T const& a, T const& b)
+		static T divide(T const& divisible, T const& divider)
 		{
-			if (std::abs(b) < (1e-15))
+			if (static_cast<double>(std::abs(divider)) < (1e-15))
 				throw std::range_error("Division by zero exception");
-			return a / b;
+			return divisible / divider;
 		}
 	};
 
+	/** \class Calculator
+	 * \brief Provides 'eval' function for calculate expression
+	 */
 	template<class T = double>
 	class Calculator
 	{
 	public:
+		/**
+		 * \brief Calculate string mathematical expression
+		 * \details For example: \n
+		 * \code calculator::Calculator<double> calculator;
+		 * calculator.eval("5 + 5"); \endcode
+		 * \param expression mathematic expression to be evaluated
+		 * \throw std::runtime_error if expression has incorrect format
+		 * \throw std::range_error for division by zero
+		 * \return The answer of the calculated expression
+		 */
 		T eval(std::string const& expression)
 		{
 			if (expression.empty())
@@ -166,7 +235,6 @@ namespace calculator
 			case OperationType::NULL_OP:
 				return b;
 			}
-			throw std::runtime_error("Bad Operation");
 		}
 
 		T compute(T const& expression, std::string const& operation, double const& base = 0) const
@@ -193,7 +261,6 @@ namespace calculator
 				return Math::root(expression, base);
 			if (operation == "exp")
 				return std::exp(expression);
-			throw std::runtime_error("Bad Operation");
 		}
 
 		T parseExpression()
@@ -334,6 +401,16 @@ namespace calculator
 		}
 	};
 
+	/**
+	 * \brief Calculate string mathematical expression
+	 * \details For example: \n
+	 * \code auto answer = calculator::eval<std::int64_t>("5 + 5"); \endcode
+	 * \tparam T the type of evaluated variable 
+	 * \param expression mathematic expression to be evaluated
+	 * \throw std::runtime_error if expression has incorrect format
+	 * \throw std::range_error for division by zero
+	 * \return The answer of the calculated expression
+	 */
 	template<class T = double>
 	T eval(std::string const& expression)
 	{
